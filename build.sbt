@@ -50,6 +50,8 @@ lazy val root = (project in file(pName))
       Libraries.derevoCore,
       Libraries.derevoCats,
       Libraries.derevoCirce,
+      Libraries.eventStore,
+      Libraries.eventStoreCirce,
       Libraries.fs2,
       Libraries.http4sDsl,
       Libraries.http4sServer,

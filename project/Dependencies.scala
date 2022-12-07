@@ -8,6 +8,7 @@ object Dependencies {
     val catsRetry     = "3.1.0"
     val circe         = "0.14.3"
     val ciris         = "3.0.0"
+    val eventStore    = "0.0-8c52f02-SNAPSHOT"
     val derevo        = "0.13.0"
     val javaxCrypto   = "1.0.1"
     val http4s        = "0.23.16"
@@ -36,11 +37,13 @@ object Dependencies {
     def derevo(artifact: String): ModuleID = "tf.tofu"    %% s"derevo-$artifact" % V.derevo
     def http4s(artifact: String): ModuleID = "org.http4s" %% s"http4s-$artifact" % V.http4s
 
-    val cats       = "org.typelevel"    %% "cats-core"   % V.cats
-    val catsEffect = "org.typelevel"    %% "cats-effect" % V.catsEffect
-    val catsRetry  = "com.github.cb372" %% "cats-retry"  % V.catsRetry
-    val squants    = "org.typelevel"    %% "squants"     % V.squants
-    val fs2        = "co.fs2"           %% "fs2-core"    % V.fs2
+    val cats            = "org.typelevel"      %% "cats-core"     % V.cats
+    val catsEffect      = "org.typelevel"      %% "cats-effect"   % V.catsEffect
+    val catsRetry       = "com.github.cb372"   %% "cats-retry"    % V.catsRetry
+    val eventStore      = "io.github.lapsushq" %% "dolphin-core"  % V.eventStore
+    val eventStoreCirce = "io.github.lapsushq" %% "dolphin-circe" % V.eventStore
+    val squants         = "org.typelevel"      %% "squants"       % V.squants
+    val fs2             = "co.fs2"             %% "fs2-core"      % V.fs2
 
     val circeCore    = circe("core")
     val circeGeneric = circe("generic")
