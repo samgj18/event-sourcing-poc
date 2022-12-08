@@ -1,15 +1,15 @@
-import cats.effect.IO
-import cats.effect.IOApp
-import dolphin.StoreSession
 import cats.effect.kernel.Async
-// import org.typelevel.log4cats.Logger
-import dolphin.option.ReadOptions
-import io.circe.generic.semiauto.*
+import cats.effect.{IO, IOApp}
 import cats.syntax.all.*
-import io.circe.{Encoder, Decoder}
-import dolphin.circe.domain.ReadDecodeResult.Failure
-import dolphin.circe.domain.ReadDecodeResult.Success
+import dolphin.StoreSession
+import dolphin.circe.domain.ReadDecodeResult.{Failure, Success}
+import dolphin.option.{ReadOptions, WriteOptions}
 import fs2.Stream
+import io.circe.generic.semiauto.*
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder}
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object Main extends IOApp.Simple {
 
@@ -128,15 +128,12 @@ object Main extends IOApp.Simple {
 
   object Event {
 
-    implicit val eventEncoder: Encoder[Event] = { value =>
-      value match {
-        case c: ShoppingCartCreated    => ShoppingCartCreated.encoder(c)
-        case i: ItemAdded              => ItemAdded.encoder(i)
-        case i: ItemRemoved            => ItemRemoved.encoder(i)
-        case i: ItemQuantityChanged    => ItemQuantityChanged.encoder(i)
-        case s: ShoppingCartCheckedOut => ShoppingCartCheckedOut.encoder(s)
-
-      }
+    implicit val eventEncoder: Encoder[Event] = {
+      case c: ShoppingCartCreated    => ShoppingCartCreated.encoder(c)
+      case i: ItemAdded              => ItemAdded.encoder(i)
+      case i: ItemRemoved            => ItemRemoved.encoder(i)
+      case i: ItemQuantityChanged    => ItemQuantityChanged.encoder(i)
+      case s: ShoppingCartCheckedOut => ShoppingCartCheckedOut.encoder(s)
 
     }
 
@@ -206,21 +203,21 @@ object Main extends IOApp.Simple {
   )
 
   // Aggregate
-  val shoppingCart: ShoppingCart = events.foldLeft(ShoppingCart.empty(shoppingCartId))(ShoppingCart.when)
+  private val shoppingCart: ShoppingCart = events.foldLeft(ShoppingCart.empty(shoppingCartId))(ShoppingCart.when)
 
   // Usually in event sourced applications, the state is persisted in a database and we have a 1:1 mapping between the commands and the events.
 
   trait EventStore[F[_], TEntity, TEvent] {
     def get(id: String, when: TEntity => TEvent): F[Option[TEntity]]
-    def append(id: String, event: TEvent): F[Unit]
-    def append(id: String, event: TEvent, version: Int): F[Unit]
+    def append(id: String, event: TEvent, eventType: String): F[Unit]
+    def append(id: String, event: TEvent, eventType: String, version: Long): F[Unit]
   }
 
   object EventStore {
     import cats.syntax.all.*
     import dolphin.circe.syntax.reader.*
 
-    def make[F[_]: Async](session: StoreSession[F]) =
+    def make[F[_]: Async](session: StoreSession[F]): EventStore[F, ShoppingCart, Event] =
       new EventStore[F, ShoppingCart, Event] {
 
         override def get(
@@ -238,18 +235,29 @@ object Main extends IOApp.Simple {
 
         }
 
-        override def append(id: String, event: Event): F[Unit] = ???
+        override def append(
+          id: String,
+          event: Event,
+          eventType: String,
+        ): F[Unit] = session.write(id, event.asJson.noSpaces.getBytes, eventType).as(())
 
-        override def append(id: String, event: Event, version: Int): F[Unit] = ???
+        override def append(id: String, event: Event, eventType: String, version: Long): F[Unit] = session
+          .write(id, WriteOptions.default.withExpectedRevision(version), event.asJson.noSpaces.getBytes, eventType)
+          .as(())
 
       }
 
   }
 
-  // StoreSession.resource(
-  // host = "localhost",
-  // port = 2113,
-  // tls = false,
-  // )
-  def run: IO[Unit] = IO.println(shoppingCart)
+  implicit val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+
+  def run: IO[Unit] = StoreSession
+    .resource[IO](
+      host = "localhost",
+      port = 2113,
+      tls = false,
+    )
+    .map(client => EventStore.make[IO](client))
+    .use(session => session.append(shoppingCartId.value, events.head, "ShoppingCartCreated"))
+
 }
