@@ -1,0 +1,121 @@
+{
+	"info": {
+		"_postman_id": "9a5695e5-00b5-4a87-8782-852ec4ceba1e",
+		"name": "playground esdb",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "7326017"
+	},
+	"item": [
+		{
+			"name": "create todo",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"{{$randomJobTitle}}\",\n    \"description\": \"{{$randomJobDescriptor}}\",\n    \"status\": \"{{$randomBoolean}}\",\n    \"priority\": \"low\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/v1/todos/create",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"todos",
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete todo",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"13f33043-93fd-460e-96c4-e27acbe1b2f1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/v1/todos/delete",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"todos",
+						"delete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "update todo",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\":\"6e506e55-cc99-45da-8692-01d59f2663c0\",\n    \"title\": \"{{$randomJobTitle}}\",\n    \"description\": \"{{$randomJobDescriptor}}\",\n    \"status\": \"{{$randomBoolean}}\",\n    \"priority\": \"low\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/v1/todos/update",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"todos",
+						"update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get todo",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/v1/todos/13f33043-93fd-460e-96c4-e27acbe1b2f1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"v1",
+						"todos",
+						"13f33043-93fd-460e-96c4-e27acbe1b2f1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
