@@ -10,8 +10,6 @@ ThisBuild / versionScheme                       := Some("early-semver")
 ThisBuild / githubWorkflowPublishTargetBranches := Seq()
 ThisBuild / scalafixDependencies += Libraries.organizeImports
 
-resolvers ++= Resolver.sonatypeOssRepos("snapshots")
-
 val pName = "template"
 
 val scalafixCommonSettings = inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest))

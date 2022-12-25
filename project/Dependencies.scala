@@ -6,7 +6,7 @@ object Dependencies {
     val cats       = "2.9.0"
     val catsEffect = "3.4.1"
     val circe      = "0.14.3"
-    val eventStore = "0.0-dddac6b-SNAPSHOT"
+    val eventStore = "0.0-16919d4-SNAPSHOT"
     val derevo     = "0.13.0"
     val http4s     = "0.23.16"
     val fs2        = "3.4.0"

@@ -10,11 +10,11 @@ import cats.syntax.apply.*
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
 import cats.syntax.option.*
-import dolphin.StoreSession
+import dolphin.VolatileSession
 import dolphin.circe.domain.ReadDecodeResult
 import dolphin.circe.domain.ReadDecodeResult.{Failure, Success}
 import dolphin.circe.syntax.reader.*
-import dolphin.option.{ReadOptions, WriteOptions}
+import dolphin.setting.{ReadSettings, AppendSettings}
 import fs2.Stream
 import io.circe.syntax.*
 import org.typelevel.log4cats.Logger
@@ -29,29 +29,30 @@ trait EventStore[F[_], TEntity, TEvent] {
 
 object EventStore {
 
-  def make[F[_]: Async: Logger](session: StoreSession[F]): EventStore[F, Todo, Event] =
+  def make[F[_]: Async: Logger](session: VolatileSession[F]): EventStore[F, Todo, Event] =
     new EventStore[F, Todo, Event] {
 
       override def get(
         id: String,
         when: (Todo, Event) => Todo,
-      ): F[Option[Todo]] = session.read(id, ReadOptions.default.fromStart.withMaxCount(100).forward).flatMap { result =>
-        def mapResult(result: ReadDecodeResult[Event]): Stream[F, Option[Todo]] =
-          result match {
-            case Success(value)  => Stream(Some(when(Todo.empty, value)))
-            case Failure(errors) => Stream.eval(Logger[F].error(s"$errors")) *> Stream(none[Todo])
-          }
+      ): F[Option[Todo]] = session.readStream(id, ReadSettings.default.fromStart.withMaxCount(100).forward).flatMap {
+        result =>
+          def mapResult(result: ReadDecodeResult[Event]): Stream[F, Option[Todo]] =
+            result match {
+              case Success(value)  => Stream(Some(when(Todo.empty, value)))
+              case Failure(errors) => Stream.eval(Logger[F].error(s"$errors")) >> Stream(none[Todo])
+            }
 
-        result
-          .getEventType
-          .flatMap {
-            case "TodoCreated" => result.as[TodoCreated].flatMap(mapResult)
-            case "TodoUpdated" => result.as[TodoUpdated].flatMap(mapResult)
-            case "TodoDeleted" => result.as[TodoDeleted].flatMap(mapResult)
-            case _             => Stream(none[Todo])
-          }
-          .compile
-          .lastOrError
+          result
+            .getEventType
+            .flatMap {
+              case "TodoCreated" => result.as[TodoCreated].flatMap(mapResult)
+              case "TodoUpdated" => result.as[TodoUpdated].flatMap(mapResult)
+              case "TodoDeleted" => result.as[TodoDeleted].flatMap(mapResult)
+              case _             => Stream(none[Todo])
+            }
+            .compile
+            .lastOrError
 
       }
 
@@ -59,11 +60,20 @@ object EventStore {
         id: String,
         event: Event,
         eventType: String,
-      ): F[Either[Throwable, Unit]] = session.write(id, event.asJson.noSpaces.getBytes, eventType).attempt.as(Right(()))
+      ): F[Either[Throwable, Unit]] = session
+        .appendToStream(id, event.asJson.noSpaces.getBytes, Array.emptyByteArray, eventType)
+        .attempt
+        .as(Right(()))
 
       override def append(id: String, event: Event, eventType: String, version: Long): F[Either[Throwable, Unit]] =
         session
-          .write(id, WriteOptions.default.withExpectedRevision(version), event.asJson.noSpaces.getBytes, eventType)
+          .appendToStream(
+            id,
+            AppendSettings.default.withExpectedRevision(version),
+            event.asJson.noSpaces.getBytes,
+            Array.emptyByteArray,
+            eventType,
+          )
           .attempt
           .as(Right(()))
 
